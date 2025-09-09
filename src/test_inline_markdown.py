@@ -2,6 +2,8 @@ import unittest
 
 from inline_markdown import (
     split_nodes_delimiter,
+    split_nodes_image,
+    split_nodes_link,
     extract_markdown_images,
     extract_markdown_links,
 )
@@ -70,6 +72,105 @@ class TestSplitNodesDelimiter(unittest.TestCase):
         new_nodes = split_nodes_delimiter([link], "`", TextType.CODE)
         expected = [link]
         self.assertEqual(new_nodes, expected)
+
+
+class TestSplitImages(unittest.TestCase):
+    def test_split_images(self):
+        node = TextNode(
+            "This is text with an ![image](https://i.imgur.com/zjjcJKZ.png) and another ![second image](https://i.imgur.com/3elNhQu.png)",
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_image([node])
+        self.assertListEqual(
+            [
+                TextNode("This is text with an ", TextType.TEXT),
+                TextNode("image", TextType.IMAGE, "https://i.imgur.com/zjjcJKZ.png"),
+                TextNode(" and another ", TextType.TEXT),
+                TextNode(
+                    "second image", TextType.IMAGE, "https://i.imgur.com/3elNhQu.png"
+                ),
+            ],
+            new_nodes,
+        )
+
+    def test_image_at_start_and_between_text(self):
+        node = TextNode(
+            "![first](u1) middle ![second](u2)",
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_image([node])
+        self.assertListEqual(
+            [
+                TextNode("first", TextType.IMAGE, "u1"),
+                TextNode(" middle ", TextType.TEXT),
+                TextNode("second", TextType.IMAGE, "u2"),
+            ],
+            new_nodes,
+        )
+
+    def test_trailing_text_after_last_image_is_preserved(self):
+        node = TextNode("before ![alt](u1) after", TextType.TEXT)
+        new_nodes = split_nodes_image([node])
+        self.assertListEqual(
+            [
+                TextNode("before ", TextType.TEXT),
+                TextNode("alt", TextType.IMAGE, "u1"),
+                TextNode(" after", TextType.TEXT),
+            ],
+            new_nodes,
+        )
+
+    def test_image_only_text_node(self):
+        node = TextNode("![solo](u)", TextType.TEXT)
+        new_nodes = split_nodes_image([node])
+        self.assertListEqual(
+            [TextNode("solo", TextType.IMAGE, "u")],
+            new_nodes,
+        )
+
+    def test_no_images_pass_through(self):
+        node = TextNode("no images here", TextType.TEXT)
+        new_nodes = split_nodes_image([node])
+        self.assertListEqual([TextNode("no images here", TextType.TEXT)], new_nodes)
+
+    def test_non_text_nodes_are_passed_through_unchanged(self):
+        link = TextNode("Example", TextType.LINK, "https://ex.com")
+        new_nodes = split_nodes_image([link])
+        self.assertListEqual([link], new_nodes)
+
+    def test_processing_continues_across_multiple_nodes(self):
+        nodes = [
+            TextNode("no images here", TextType.TEXT),
+            TextNode(" then an ![img](u)", TextType.TEXT),
+        ]
+        new_nodes = split_nodes_image(nodes)
+        self.assertListEqual(
+            [
+                TextNode("no images here", TextType.TEXT),
+                TextNode(" then an ", TextType.TEXT),
+                TextNode("img", TextType.IMAGE, "u"),
+            ],
+            new_nodes,
+        )
+
+
+class TestSplitLinks(unittest.TestCase):
+    def test_split_links(self):
+        node = TextNode(
+            "This is text with a [link](http://www.first.com) and [another link](http://www.second.com) with text that follows",
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_link([node])
+        self.assertListEqual(
+            [
+                TextNode("This is text with a ", TextType.TEXT),
+                TextNode("link", TextType.LINK, "http://www.first.com"),
+                TextNode(" and ", TextType.TEXT),
+                TextNode("another link", TextType.LINK, "http://www.second.com"),
+                TextNode(" with text that follows", TextType.TEXT),
+            ],
+            new_nodes,
+        )
 
 
 class TestExtractMarkdownImages(unittest.TestCase):
