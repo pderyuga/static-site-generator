@@ -1,6 +1,10 @@
 import unittest
 
-from inline_markdown import split_nodes_delimiter
+from inline_markdown import (
+    split_nodes_delimiter,
+    extract_markdown_images,
+    extract_markdown_links,
+)
 from textnode import TextNode, TextType
 
 
@@ -66,6 +70,34 @@ class TestSplitNodesDelimiter(unittest.TestCase):
         new_nodes = split_nodes_delimiter([link], "`", TextType.CODE)
         expected = [link]
         self.assertEqual(new_nodes, expected)
+
+
+class TestExtractMarkdownImages(unittest.TestCase):
+    def test_extract_markdown_images(self):
+        matches = extract_markdown_images(
+            "This is text with an ![image](https://i.imgur.com/image.png)"
+        )
+        self.assertListEqual(
+            [("image", "https://i.imgur.com/image.png")],
+            matches,
+        )
+
+
+class TestExtractMarkdownLinks(unittest.TestCase):
+    def test_extract_markdown_links(self):
+        text = (
+            "This is text with a link "
+            "[to site one](http://www.one.com) and "
+            "[to site two](http://www.two.com)"
+        )
+        matches = extract_markdown_links(text)
+        self.assertListEqual(
+            [
+                ("to site one", "http://www.one.com"),
+                ("to site two", "http://www.two.com"),
+            ],
+            matches,
+        )
 
 
 if __name__ == "__main__":
