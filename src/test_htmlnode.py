@@ -1,6 +1,6 @@
 import unittest
 
-from htmlnode import HTMLNode, LeafNode
+from htmlnode import HTMLNode, LeafNode, ParentNode
 
 
 class TestHTMLNode(unittest.TestCase):
@@ -84,6 +84,89 @@ class TestLeafNode(unittest.TestCase):
     def test_leaf_to_html_preserves_whitespace_in_value(self):
         node = LeafNode("pre", "  indented\nline  ")
         self.assertEqual(node.to_html(), "<pre>  indented\nline  </pre>")
+
+
+class TestParentNode(unittest.TestCase):
+    def test_to_html_simple_child(self):
+        child = LeafNode("span", "child")
+        parent = ParentNode("div", [child])
+        self.assertEqual(parent.to_html(), "<div><span>child</span></div>")
+
+    def test_to_html_with_grandchildren(self):
+        grandchild = LeafNode("b", "grandchild")
+        child = ParentNode("span", [grandchild])
+        parent = ParentNode("div", [child])
+        self.assertEqual(parent.to_html(), "<div><span><b>grandchild</b></span></div>")
+
+    def test_to_html_multiple_children_and_props(self):
+        parent = ParentNode(
+            "div",
+            [LeafNode("span", "one"), LeafNode("em", "two")],
+            props={"class": "wrapper", "id": "main"},
+        )
+        self.assertEqual(
+            parent.to_html(),
+            '<div class="wrapper" id="main"><span>one</span><em>two</em></div>',
+        )
+
+    def test_to_html_nested_list_with_inner_props(self):
+        li1 = ParentNode("li", [LeafNode(None, "Item 1")])
+        li2 = ParentNode(
+            "li", [LeafNode("strong", "Item 2")], props={"class": "active"}
+        )
+        ul = ParentNode("ul", [li1, li2])
+        self.assertEqual(
+            ul.to_html(),
+            '<ul><li>Item 1</li><li class="active"><strong>Item 2</strong></li></ul>',
+        )
+
+    def test_children_order_preserved(self):
+        parent = ParentNode(
+            "div", [LeafNode("span", "first"), LeafNode("span", "second")]
+        )
+        self.assertEqual(
+            parent.to_html(),
+            "<div><span>first</span><span>second</span></div>",
+        )
+
+    def test_to_html_raises_when_tag_none(self):
+        parent = ParentNode(None, [LeafNode("span", "x")])
+        with self.assertRaises(ValueError) as cm:
+            parent.to_html()
+        self.assertEqual(str(cm.exception), "all parent nodes must have a tag")
+
+    def test_to_html_raises_when_tag_empty(self):
+        parent = ParentNode("", [LeafNode("span", "x")])
+        with self.assertRaises(ValueError) as cm:
+            parent.to_html()
+        self.assertEqual(str(cm.exception), "all parent nodes must have a tag")
+
+    def test_to_html_raises_when_children_empty_list(self):
+        parent = ParentNode("div", [])
+        with self.assertRaises(ValueError) as cm:
+            parent.to_html()
+        self.assertEqual(str(cm.exception), "all parent nodes must have children")
+
+    def test_to_html_raises_when_children_none(self):
+        parent = ParentNode("div", None)
+        with self.assertRaises(ValueError) as cm:
+            parent.to_html()
+        self.assertEqual(str(cm.exception), "all parent nodes must have children")
+
+    def test_error_propagates_from_child(self):
+        bad_child = LeafNode("p", None)  # will raise ValueError
+        parent = ParentNode("div", [bad_child])
+        with self.assertRaises(ValueError) as cm:
+            parent.to_html()
+        self.assertEqual(str(cm.exception), "all leaf nodes must have a value")
+
+    def test_repr(self):
+        child = LeafNode("span", "child")
+        parent = ParentNode("div", [child], props={"class": "box"})
+        self.assertEqual(
+            repr(parent),
+            "ParentNode(div, children: [LeafNode(span, child, None)], {'class': 'box'})",
+        )
 
 
 if __name__ == "__main__":
