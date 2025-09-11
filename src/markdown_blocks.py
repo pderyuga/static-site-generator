@@ -1,8 +1,6 @@
 from enum import Enum
 import re
 
-
-from markdown_blocks import markdown_to_blocks, block_to_block_type
 from inline_markdown import text_to_textnodes
 from textnode import TextNode, TextType, text_node_to_html_node
 from htmlnode import ParentNode
