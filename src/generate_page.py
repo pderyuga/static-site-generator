@@ -14,7 +14,7 @@ def extract_title(markdown):
     raise Exception("no title found")
 
 
-def generate_page(from_path, template_path, dest_path):
+def generate_page(from_path, template_path, dest_path, basepath):
     print(f"Generating page from {from_path} to {dest_path} using {template_path}")
 
     markdown_file = open(from_path)
@@ -30,16 +30,19 @@ def generate_page(from_path, template_path, dest_path):
     html_doc_with_title = template_doc.replace("{{ Title }}", page_title)
     html_doc = html_doc_with_title.replace("{{ Content }}", markdown_html)
 
+    html_doc_with_href = html_doc.replace('href="/', f'href="{basepath}')
+    html_doc_with_src = html_doc_with_href.replace('src="/', f'href="{basepath}')
+
     dest_directory = os.path.dirname(dest_path)
 
     if not os.path.exists(dest_directory):
         os.makedirs(dest_directory)
 
     with open(dest_path, "w") as destination_file:
-        destination_file.write(html_doc)
+        destination_file.write(html_doc_with_src)
 
 
-def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path, basepath):
     print(
         f"copying contents of source directory {dir_path_content} into destination directory {dest_dir_path}..."
     )
@@ -54,10 +57,14 @@ def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
         content_file_path = pathlib.Path(dir_path_content, content_file)
         dest_file_path = pathlib.Path(dest_dir_path, content_file)
         if os.path.isfile(content_file_path) and str(content_file_path).endswith(".md"):
-            dest_file_path = pathlib.Path(dest_dir_path, content_file).with_suffix(".html")
+            dest_file_path = pathlib.Path(dest_dir_path, content_file).with_suffix(
+                ".html"
+            )
             print(f"copying file from {content_file_path}")
-            generate_page(content_file_path, template_path, dest_file_path)
+            generate_page(content_file_path, template_path, dest_file_path, basepath)
             print(f"copied file to {dest_file_path}")
         else:
             print(f"{content_file} is a directory")
-            generate_pages_recursive(content_file_path, template_path, dest_file_path)
+            generate_pages_recursive(
+                content_file_path, template_path, dest_file_path, basepath
+            )
