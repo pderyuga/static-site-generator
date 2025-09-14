@@ -30,8 +30,8 @@ def generate_page(from_path, template_path, dest_path, basepath):
     html_doc_with_title = template_doc.replace("{{ Title }}", page_title)
     html_doc = html_doc_with_title.replace("{{ Content }}", markdown_html)
 
-    html_doc_with_href = html_doc.replace('href="/', f'href="{basepath}')
-    html_doc_with_src = html_doc_with_href.replace('src="/', f'href="{basepath}')
+    html_doc_with_href = html_doc.replace('href="/', f'href="/{basepath}')
+    html_doc_with_src = html_doc_with_href.replace('src="/', f'href="/{basepath}')
 
     dest_directory = os.path.dirname(dest_path)
 
